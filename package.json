@@ -1,0 +1,21 @@
+{
+  "name": "lankavatara",
+  "version": "1.0.0",
+  "description": "## step     https://pdftotext.com/  to extract text     替代腳注 a 改 ①      替代 - 數字 - 為 ^pdf",
+  "main": "splitter.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/accelon/lankavatara.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/accelon/lankavatara/issues"
+  },
+  "homepage": "https://github.com/accelon/lankavatara#readme"
+}
