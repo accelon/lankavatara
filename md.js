@@ -15,18 +15,24 @@ const emit=()=>{ //輸出一行到目標文件
     let s=segment.join('$$').trim();
     while (out.prevblockid==blockid) {
         if (!out.sameblockcount) out.sameblockcount=0;
-        blockid=(out.prevblockid||'')+toBase26(out.sameblockcount)
+
+        blockid=((out.prevblockid||'').replace(/[a-z]+$/,''))+toBase26(out.sameblockcount)
         out.sameblockcount++
-        console.log('autoblockid',blockid)
+        // console.log('autoblockid',blockid)
     }
     if (!blockid) blockid='0'
-    if (out!==footnote && s) s+=' ^n'+chunkid+'-'+(blockid)+'\n';
+    //add ^ at the end to skip block id
+    if (out!==footnote && s && !s.endsWith('^')) s+=' ^n'+chunkid+'-'+(blockid)+'\n';
     out.prevblockid=blockid;
-    out.sameblockcount=0;
+    if (s.endsWith('^')) s=s.slice(0,s.length-1)
+    if (s.startsWith('#')||s.startsWith('=')) s=s+'\n';
     if (out!==footnote) out.push(s)
     segment.length=0;
 }
-
+const epilog=outarr=>{
+    outarr=fixblockid(outarr);
+    return appendfootnote(outarr)
+}
 const appendfootnote=outarr=>{
     let s=outarr.join('\n');
     const out=[];
@@ -37,6 +43,36 @@ const appendfootnote=outarr=>{
     
     return s+'\n'+(out.join('\n').replace(/\n+/g,'\n'));
 }
+
+const fixblockid=outarr=>{ // 1a => 2, 1b=>2a , 1=>1b
+    const blockids={};
+    let current='';//current block id with multiple segment
+    let segmentcount=0;
+    for (let i=0;i<outarr.length;i++) {
+        const m=outarr[i].match(/\^n(\d+)-([a-z\d]+)/);
+        if (!m) continue;
+        const [m0,cid,bid]=m;
+        const m2=bid.match(/[a-z]+$/)
+        let newid='';
+        if (m2) {
+            current=(parseInt(bid)+1);
+            newid=current+toBase26(segmentcount)
+            segmentcount++;
+            
+        } else {
+            if (current) {
+                newid=current+toBase26(segmentcount)
+                segmentcount++;
+            }
+            segmentcount=0;
+            current=''
+        }
+        if (newid) {
+            outarr[i]=outarr[i].replace('^n'+cid+'-'+bid,'^n'+cid+'-'+newid)
+        }
+    }   
+    return outarr;
+}
 const splitter=()=>{
     for (let i=0;i<lines.length;i++){
         lines[i]=lines[i].replace(/(.)[①②③④]/g,(m,m1)=>{return m1+'[^'+(notecount+pagenotecount++)+']' });
@@ -44,7 +80,7 @@ const splitter=()=>{
             emit();
             //blockid++;
             out=sanskrit;
-            lines[i]=lines[i].replace(/\^n(\d+)/,(m,m1)=>{blockid=m1;return ''});
+            lines[i]=lines[i].replace(/\^n(\d+)/,(m,m1)=>{blockid=m1;out.sameblockcount=0;return ''});
             lines[i]=lines[i].replace(/\^ck(\d+)/,(m,m1)=>{chunkid=m1;blockid='0';return ''});
         } else if (lines[i].startsWith('【求】')) {
             emit();
@@ -93,11 +129,11 @@ const splitter=()=>{
 
     
 
-    writeChanged(outdir+'sanskrit.md',appendfootnote(sanskrit),true)
-    writeChanged(outdir+'gunabhadra.md',appendfootnote(gunabhadra),true)
-    writeChanged(outdir+'bodhiruci.md',appendfootnote(bodhiruci),true)
-    writeChanged(outdir+'sikhananda.md',appendfootnote(sikhananda),true)
-    writeChanged(outdir+'huang.md',appendfootnote(huang),true)
+    writeChanged(outdir+'sanskrit.md',epilog(sanskrit),true)
+    writeChanged(outdir+'gunabhadra.md',epilog(gunabhadra),true)
+    writeChanged(outdir+'bodhiruci.md',epilog(bodhiruci),true)
+    writeChanged(outdir+'sikhananda.md',epilog(sikhananda),true)
+    writeChanged(outdir+'huang.md',epilog(huang),true)
     
     console.log('all note count',notecount)
 }
